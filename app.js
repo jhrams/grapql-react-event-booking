@@ -12,15 +12,37 @@ const app = express();
 
 app.use(bodyParser.json());
 
+const events = eventIds => {
+  return Event.find({ _id: { $in: eventIds } })
+    .then(events => {
+      return events.map(event => {
+        return {
+          ...event._doc,
+          _id: event.id,
+          creator: user.bind(this, event.creator)
+        };
+      });
+    })
+    .catch(err => {
+      throw err;
+    })
+};
+
 const user = userId => {
   return User.findById(userId)
     .then(user => {
-      return { ...user._doc, _id: user.id };
+      return {
+        ...user._doc,
+        _id: user.id,
+        createdEvents: events.bind(this, user._doc.createdEvents)
+      };
     })
     .catch(err => {
       throw err;
     });
 };
+
+
 
 app.use('/graphql', graphqlHttp({
   schema: buildSchema(`
@@ -95,7 +117,11 @@ app.use('/graphql', graphqlHttp({
       return event
         .save()
         .then(result => {
-          createdEvent = { ...result._doc, _id: result._doc._id.toString() };
+          createdEvent = {
+            ...result._doc,
+            _id: result._doc._id.toString(),
+            creator: user.bind(this, result._doc.creator)
+          };
           return User.findById('5e66c5195b8b4558118076f7');
         })
         .then(user => {
